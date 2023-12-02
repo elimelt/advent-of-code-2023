@@ -1,21 +1,21 @@
 #!/bin/bash
 
-# Check if directory argument is provided
+# check if directory arg is provided
 if [ $# -eq 0 ]; then
   echo "Please provide a directory as an argument."
   exit 1
 fi
 
-echo "Running main.kt in ./$1"
+echo "Running main.kt in $1"
 
-# Change to the specified directory
+# change directory to provided arg
 cd "$1" || exit 1
 
-# Compile the Kotlin file and create a JAR file
+# compile main.kt to JAR
 kotlinc main.kt -include-runtime -d main.jar
 
-# Run the JAR file
+# run JAR
 java -jar main.jar
 
-# Remove the JAR file
+# clean up
 rm main.jar

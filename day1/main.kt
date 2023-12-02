@@ -10,7 +10,7 @@ fun getCalibrationNumberPartOne(line: String): Int =
     (line[line.indexOfFirst(Char::isDigit)].toString() + line[line.indexOfLast(Char::isDigit)].toString()).toInt()
 
 
-fun getSortOfADigit(s: String, i: Int): Int? =
+fun getSemiDigitStartingFrom(s: String, i: Int): Int? =
     if (s[i].isDigit())
         s[i].toString().toInt()
     else
@@ -21,30 +21,28 @@ fun getSortOfADigit(s: String, i: Int): Int? =
                 null
     }.firstOrNull()
 
-fun getFirstSortOfDigit(s: String): Int = generateSequence(0) { it + 1 }
-    .mapNotNull { getSortOfADigit(s, it) }
+fun getFirstSemiDigit(s: String): Int = generateSequence(0) { it + 1 }
+    .mapNotNull { getSemiDigitStartingFrom(s, it) }
     .first()
 
-fun getLastSortOfDigit(s: String): Int = generateSequence(s.length - 1) { it - 1 }
-    .mapNotNull { getSortOfADigit(s, it) }
+fun getLastSemiDigit(s: String): Int = generateSequence(s.length - 1) { it - 1 }
+    .mapNotNull { getSemiDigitStartingFrom(s, it) }
     .first()
 
-fun getCalibrationNumberPartTwo(line: String): Int = (getFirstSortOfDigit(line).toString() + getLastSortOfDigit(line).toString()).toInt()
+fun getCalibrationNumberPartTwo(line: String): Int = (getFirstSemiDigit(line).toString() + getLastSemiDigit(line).toString()).toInt()
 
 
 /*
 Let N be the number of lines in the input file, and let M be the length of the longest line.
-Then the running time of the program is O(NM), or in other words the running time is linear
-in the size of the input (in bytes)
 */
 fun main() {
 
-    // Part 1 solution. Running time:
+    // Part 1 solution. Running time: O(NM)
     // one line solution:  val ans = File(INPUT_FILE).readLines().sumOf { (it[it.indexOfFirst { it.isDigit() }].toString() + it[it.indexOfLast { it.isDigit() }].toString()).toInt() }
     val partOneSum = File(INPUT_FILE).readLines().sumOf { getCalibrationNumberPartOne(it) }
     println("Part one: $partOneSum")
 
-    // Part 2 solution. Running time:
+    // Part 2 solution. Running time: O(NM)
     val partTwoSum = File(INPUT_FILE).readLines().sumOf { getCalibrationNumberPartTwo(it) }
     println("Part two: $partTwoSum")
 }
