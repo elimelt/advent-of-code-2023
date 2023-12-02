@@ -59,10 +59,16 @@ fun countPower(game: Game): Int = game.blue.maxOrNull()!! * game.green.maxOrNull
 
 fun main() {
     // Part 1
-    val ans1 = File(INPUT_FILE).readLines().sumOf { line -> countId(parseLine(line)) }
-    println("Part one: $ans1")
+    File(INPUT_FILE)
+        .readLines()
+        .sumOf { line -> countId(parseLine(line)) }
+        .also { println("Part one: $it") }
+
 
     // Part 2
-    val ans2 = File(INPUT_FILE).readLines().sumOf { line -> countPower(parseLine(line, earlyReturn = false)!!) }
-    println("Part two: $ans2")
+    File(INPUT_FILE)
+        .readLines()
+        .sumOf { line -> countPower(parseLine(line, earlyReturn = false)!!) }
+        .also { println("Part two: $it") }
+
 }
