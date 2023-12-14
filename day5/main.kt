@@ -1,69 +1,59 @@
 import java.io.File
 const val INPUT_FILE = "./input.txt"
 
+fun readInput(input: List<String>): Triple<List<IntervalMap>, List<Long>, List<Pair<Long, Long>>> {
+    val almanac = mutableListOf<IntervalMap>()
+    val individualSeeds = input[0].split(":")[1].trim().split(" ").map { it.toLong() }
+    val seedRanges = input[0].split(":")[1].trim().split(" ").map { it.toLong() }
+
+    for (line in input) {
+        if (line.contains("map:"))
+            almanac.add(IntervalMap())
+        else if (line.length > 0 && line[0].isDigit()) {
+            val (destStart, srcStart, len) = line.split(" ").map { it.toLong() }
+            almanac.last().addInterval(srcStart, destStart, len)
+        }
+    }
+
+    val seedIntervals = mutableListOf<Pair<Long, Long>>()
+    for (i in 0 until seedRanges.size step 2)
+        seedIntervals.add(Pair(seedRanges[i], seedRanges[i + 1] + seedRanges[i]))
+
+    return Triple(almanac, individualSeeds, seedIntervals)
+}
+
 
 class IntervalMap {
     private val intervalSrc = mutableListOf<Pair<Long, Long>>()
     private val intervalDest = mutableListOf<Pair<Long, Long>>()
 
-    fun addInterval(destStart: Long, srcStart: Long, len: Long) {
+    fun addInterval(srcStart: Long, destStart: Long, len: Long) {
         intervalSrc.add(Pair(srcStart, srcStart + len))
         intervalDest.add(Pair(destStart, srcStart + len))
     }
 
-    fun getMappedVal(n: Long): Long{
-        for ((i, interval) in intervalSrc.withIndex()) {
-            if (n >= interval.first && n <= interval.second)
+    fun getMappedVal(n: Long, inclStart: Boolean = true, inclEnd: Boolean = true): Long {
+        for ((i, interval) in intervalSrc.withIndex())
+            if ((n > interval.first && n < interval.second) ||
+                (inclStart && n == interval.first) ||
+                (inclEnd && n == interval.second))
                 return intervalDest[i].first + (n - interval.first)
-        }
 
         return n
-    }
-
-    fun sortBySrcIntervalStart() {
-        val zipped = intervalSrc.zip(intervalDest)
-        val sorted = zipped.sortedBy { it.first.first }
-        intervalSrc.clear()
-        intervalDest.clear()
-        for (pair in sorted) {
-            intervalSrc.add(pair.first)
-            intervalDest.add(pair.second)
-        }
     }
 
     fun getIntervalsOverlapping(start: Long, end: Long): MutableList<Pair<Long, Long>> {
         val intervals = mutableListOf<Pair<Long, Long>>()
         for ((i, interval) in intervalSrc.withIndex()) {
             if (interval.first <= end && interval.second >= start)
-                intervals.add(intervalDest[i])
+                intervals.add(intervalSrc[i])
         }
 
         return intervals
     }
-
-
 }
 
-fun readAlmanac(input: List<String>): List<IntervalMap> {
-    val intervalMaps = mutableListOf<IntervalMap>()
-
-    for (line in input) {
-        if (line.contains("map:")) {
-            intervalMaps.add(IntervalMap())
-            continue
-        } else if (line.length > 0 && line[0].isDigit()) {
-            val (destStart, srcStart, len) = line.split(" ").map { it.toLong() }
-            intervalMaps.last().addInterval(destStart, srcStart, len)
-        }
-    }
-
-
-    return intervalMaps
-}
-
-fun findSeedLocations(input: List<String>): List<Long> {
-    val seeds: List<Long> = input[0].split(":")[1].trim().split(" ").map { it.toLong() }
-    val almanac = readAlmanac(input)
+fun findSeedLocationsOneByOne(almanac: List<IntervalMap>, seeds: List<Long>): List<Long> {
 
     val seedLocations = mutableListOf<Long>()
 
@@ -78,98 +68,84 @@ fun findSeedLocations(input: List<String>): List<Long> {
     return seedLocations
 }
 
-// fun findSeedLocationFromRanges(input: List<String>): Long {
-//     val seeds: List<Long> = input[0].split(":")[1].trim().split(" ").map { it.toLong() }
-//     val almanac = readAlmanac(input)
-
-//     almanac.forEach { it.sortBySrcIntervalStart() }
-
-// }
-
-fun mergeIntervals(intervals: List<Pair<Long, Long>>): List<Pair<Long, Long>> {
-    val sorted = intervals.sortedBy { it.first }
-    val merged = mutableListOf<Pair<Long, Long>>()
-    var curr = sorted[0]
-
-    for (interval in sorted) {
-        if (interval.first <= curr.second) {
-            curr = Pair(curr.first, interval.second)
-        } else {
-            merged.add(curr)
-            curr = interval
-        }
-    }
-
-    merged.add(curr)
-
-    return merged
-}
-
-fun splitIntervals(interval: Pair<Long, Long>, sortedCollapsedIntervals: MutableList<Long>): List<Pair<Long, Long>> {
+fun splitIntervals(interval: Pair<Long, Long>, breakPoints: Set<Long>): List<Pair<Long, Long>> {
     var out = mutableListOf<Pair<Long, Long>>()
-    sortedCollapsedIntervals.add(interval.first)
-    sortedCollapsedIntervals.add(interval.second)
 
     var visited = mutableSetOf<Long>()
 
-    for ((i, n) in sortedCollapsedIntervals.withIndex()) {
-        if (n == interval.first || visited.contains(n))
-            continue
+    var curr = interval.first
+    for (breakPoint in breakPoints.sorted()) {
+        if (breakPoint > interval.second)
+            break
 
-        if (i == 0)
-            continue
-        if (n >= interval.first && n <= interval.second)
-            out.add(Pair(Math.max(interval.first, sortedCollapsedIntervals[i - 1]), n))
-
-        visited.add(n)
-    }
-
-    return out
-}
-
-fun transition(almanac: List<IntervalMap>, intervals: List<Pair<Long, Long>>, i: Int): List<Pair<Long, Long>> {
-    var out = mutableListOf<Pair<Long, Long>>()
-
-    map: IntervalMap = almanac[i]
-
-    for (interval in intervals) {
-        val overlapping = almanac[0].getIntervalsOverlapping(interval.first, interval.second)
-        for (overlap in overlapping) {
-            out.add(Pair(overlap.first, overlap.second))
+        if (breakPoint > curr) {
+            out.add(Pair(curr, breakPoint))
+            curr = breakPoint
         }
+
+        visited.add(breakPoint)
     }
+
+    if (curr < interval.second)
+        out.add(Pair(curr, interval.second))
 
     return out
 }
 
-fun collapseIntervalsIntoSortedList(intervals: List<Pair<Long, Long>>): List<Long> {
+fun collapseIntervalsIntoList(intervals: List<Pair<Long, Long>>): MutableList<Long> {
     var out = mutableListOf<Long>()
     for (interval in intervals) {
         out.add(interval.first)
         out.add(interval.second)
     }
-    return out.sorted()
+    return out
+}
+
+fun mapIntervalsToNextLayer(iMap: IntervalMap, intervals: List<Pair<Long, Long>>): List<Pair<Long, Long>> {
+    var breakPoints = mutableSetOf<Long>()
+    var out = mutableListOf<Pair<Long, Long>>()
+
+    intervals.forEach {
+        breakPoints.add(it.first)
+        breakPoints.add(it.second)
+
+        iMap.getIntervalsOverlapping(it.first, it.second).forEach { sourceRange ->
+            if (sourceRange.first > it.first)
+                breakPoints.add(sourceRange.first)
+            if (sourceRange.second < it.second)
+                breakPoints.add(sourceRange.second)
+        }
+    }
+
+    intervals.forEach { out.addAll(splitIntervals(it, breakPoints)) }
+
+    return out.map {
+        Pair(iMap.getMappedVal(it.first, true, false),
+             iMap.getMappedVal(it.second, false, true))
+    }
+
 }
 
 
-// fun recursiveSearchForMin(almanac: List<IntervalMap>, intervals: List<Pair<Long, Long>>, i: Int): Long {
-//     IntervalMap iMap = almanac[i]
-//     var nextIntervals = mutableListOf<Pair<Long, Long>>()
+fun searchAllLayers(almanac: List<IntervalMap>, intervals: List<Pair<Long, Long>>, i: Int): Long =
+    if (i == almanac.size)
+        intervals.minBy { it.first }.first
+    else
+        searchAllLayers(almanac, mapIntervalsToNextLayer(almanac[i], intervals), i + 1)
 
-//     for ((i, interval) in intervals.withIndex()) {
-//         val overlapping = iMap.getIntervalsOverlapping(interval.first, interval.second)
 
-//     }
+fun findMinSeedLocation(almanac: List<IntervalMap>, inputIntervals: List<Pair<Long, Long>>): Long = searchAllLayers(almanac, inputIntervals, 0);
 
-// }
 
 fun main() {
-    // dest_start, src_start, len
     val input = File(INPUT_FILE).readLines()
 
-    // println(findSeedLocations(input).min())
+    val (almanac, individualSeeds, seedIntervals) = readInput(input)
 
-    println(splitIntervals(Pair(0, 10), mutableListOf(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 14)))
+    // part 1
+    println(findSeedLocationsOneByOne(almanac, individualSeeds).min())
 
+    // part 2 6472060
+    println(findMinSeedLocation(almanac, seedIntervals))
 
 }
