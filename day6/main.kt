@@ -1,6 +1,11 @@
 import java.io.File
 const val FILENAME = "input.txt"
 
+// IMPORTANT NOTE
+// -----------------------------
+// I made all functions one-liners for fun. This is NOT
+// production code. I would never do this in production.
+
 fun readInputPart1(input: List<String>): List<Pair<Long, Long>> =
     input[0]
         .split(":")[1]
